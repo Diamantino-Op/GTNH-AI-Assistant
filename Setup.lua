@@ -12,7 +12,7 @@ filesystem.makeDirectory("/home/GTNH-AI")
 
 shell.setWorkingDirectory("/home/GTNH-AI")
 
-for file in filesToDownload do
+for _, file in ipairs(filesToDownload) do
     shell.execute("wget -f " .. file)
 end
 

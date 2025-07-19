@@ -61,7 +61,7 @@ function aiAssistant:processCommand(cmd, args)
     elseif cmd == "appliedEnergisticsGetStoredItems" then
         local itemList = "Items in the AE network: \n"
 
-        for item in meInterface.getItemsInNetwork() do
+        for _, item in ipairs(meInterface.getItemsInNetwork()) do
             itemList = itemList .. item.label .. " (Amount: " .. item.size .. ")\n"
 
             self:sendAIMessage(itemList)
@@ -126,7 +126,7 @@ function aiAssistant:sendAIMessage(msg)
 
     io.write(file, json.encode(chatCache))
 
-    for cmd in json.decode(modelResponse) do
+    for _, cmd in ipairs(json.decode(modelResponse)) do
         self.processCommand(cmd.command, cmd.args)
     end
 end
