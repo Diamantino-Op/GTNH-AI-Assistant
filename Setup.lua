@@ -1,1 +1,22 @@
 local shell = require("shell")
+local filesystem = require("filesystem")
+local computer = require("computer")
+local component = require("component")
+
+local filesToDownload = {
+    "https://raw.githubusercontent.com/Diamantino-Op/GTNH-AI-Assistant/refs/heads/main/AIAssistant.lua",
+    "https://raw.githubusercontent.com/Diamantino-Op/GTNH-AI-Assistant/refs/heads/main/Json.lua"
+}
+
+filesystem.makeDirectory("/home/GTNH-AI")
+
+shell.setWorkingDirectory("/home/GTNH-AI")
+
+for file in filesToDownload do
+    shell.execute("wget -fq " .. file)
+end
+
+shell.setWorkingDirectory("/boot")
+
+shell.execute(
+"wget -fq https://raw.githubusercontent.com/Diamantino-Op/GTNH-AI-Assistant/refs/heads/main/99_start_ai.lua")
