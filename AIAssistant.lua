@@ -1,7 +1,7 @@
 local component = require("component")
-local event = require("OCLib.event")
-local internet = require("OCLib.internet")
-local io = require("OCLib.io")
+local event = require("event")
+local internet = require("nternet")
+local io = require("io")
 
 local meInterface = component.me_interface
 local chatbox = component.chat_box
@@ -11,6 +11,8 @@ local json = require("Json")
 local aiAssistant = {}
 
 local chatCache = {}
+
+local key = ""
 
 local commandList = {
     "sendChatMessage",
@@ -98,7 +100,7 @@ function aiAssistant:sendAIMessage(msg)
         ["Content-Type"] = "application/json",
         ["Accept"] = "application/json",
         ["Content-Length"] = #jsonData,
-        ["x-goog-api-key"] = "ADD YOUR API KEY HERE"
+        ["x-goog-api-key"] = key
     }
 
     local response = internet.request(geminiHttp, jsonData, headers)
@@ -124,7 +126,7 @@ function aiAssistant:sendAIMessage(msg)
 
     local file = io.open("/home/GTNH-AI/Cache.json", "w")
 
-    io.write(file, json.encode(chatCache))
+    file.write(json.encode(chatCache))
 
     for _, cmd in ipairs(json.decode(modelResponse)) do
         self.processCommand(cmd.command, cmd.args)
@@ -148,9 +150,23 @@ function aiAssistant:messageReceived(id, _, sender, content)
 end
 
 function aiAssistant.init()
-    local file = io.open("/home/GTNH-AI/Cache.json", "r")
+    local cacheFile = io.open("/home/GTNH-AI/Cache.json", "r")
 
-    chatCache = json.decode(io.read(file))
+    if cacheFile then
+        chatCache = json.decode(cacheFile:read())
+        cacheFile:close()
+    else
+        chatCache = {}
+    end
+
+    local keyFile = io.open("/home/GTNH-AI/Key.txt", "r")
+
+    if keyFile then
+        key = keyFile:read()
+        keyFile:close()
+    else
+        chatbox.say("Error: Cannot read key!")
+    end
 end
 
 chatbox.setName("Diamond Assistant")

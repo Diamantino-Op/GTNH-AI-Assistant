@@ -19,4 +19,4 @@ end
 shell.setWorkingDirectory("/boot")
 
 shell.execute(
-    "wget -fq https://raw.githubusercontent.com/Diamantino-Op/GTNH-AI-Assistant/refs/heads/main/99_start_ai.lua")
+    "wget -f https://raw.githubusercontent.com/Diamantino-Op/GTNH-AI-Assistant/refs/heads/main/99_start_ai.lua")
