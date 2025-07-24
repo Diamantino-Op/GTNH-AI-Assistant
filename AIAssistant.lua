@@ -37,6 +37,9 @@ local genTools = {
                 }
             }
         }
+    },
+    {
+        googleSearch = {}
     }
 }
 
@@ -132,6 +135,7 @@ function sendAIRequest(payload)
     })
 
     jsonData:gsub("\"args\": []", "\"args\": {}")
+    jsonData:gsub("\"googleSearch\": []", "\"googleSearch\": {}")
 
     local headers = {
         ["Content-Type"] = "application/json",
