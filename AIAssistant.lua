@@ -43,6 +43,7 @@ local genTools = {
 local context = [[
 You are an assistant for a minecraft base in the Gregtech New Horizons modpack in minecraft.
 You are connected to multiple peripherals.
+Format the output for the minecraft chat.
 The owner name is: 
 ]]
 
