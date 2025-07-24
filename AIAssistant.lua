@@ -43,7 +43,7 @@ local genTools = {
 local context = [[
 You are an assistant for a minecraft base in the Gregtech New Horizons modpack in minecraft.
 You are connected to multiple peripherals.
-Format the output for the minecraft chat.
+Format the output for the minecraft chat (version 1.7.0, using these chars: § and \n).
 The owner name is: 
 ]]
 
@@ -129,7 +129,7 @@ function sendAIRequest(payload)
                     text = part.text
                 })
 
-                chatbox.say(part.text)
+                chatbox.say("§r".. part.text)
             elseif part.functionCall then
                 table.insert(parts, {
                     functionCall = part.functionCall
