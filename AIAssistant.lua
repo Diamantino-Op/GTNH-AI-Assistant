@@ -24,7 +24,16 @@ local genTools = {
                 name = "appliedEnergisticsGetStoredItems",
                 description = "Request all the stored items in the Applied Energistics network",
                 parameters = {
-                    type = "object"
+                    type = "object",
+                    properties = {
+                        test = {
+                            type = "string",
+                            description = "A test property, can be set to whatever"
+                        }
+                    },
+                    required = {
+                        "test"
+                    }
                 }
             }
         }
@@ -98,8 +107,8 @@ function sendAIRequest(payload)
     if debugEnabled then
         local code, message, _ = getmetatable(response).__index.response()
 
-        chatbox.say("Http Code: " .. code)
-        chatbox.say("Http Message: " .. message)
+        chatbox.say("Http Code: " .. tostring(code))
+        chatbox.say("Http Message: " .. tostring(message))
     end
 
     local result = ""
