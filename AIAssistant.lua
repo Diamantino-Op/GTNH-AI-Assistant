@@ -10,6 +10,9 @@ local json = require("Json")
 
 local chatCache = {}
 
+local assistantName = "Assistant"
+local ownerName = "Diamantino_Op"
+
 local key = ""
 
 local genTools = {
@@ -29,7 +32,10 @@ local genTools = {
 local context = [[
 You are an assistant for a minecraft base in the Gregtech New Horizons modpack in minecraft.
 You are connected to multiple peripherals.
+The owner name is: 
 ]]
+
+context = context .. ownerName
 
 function appliedEnergisticsGetStoredItems()
     local itemList = {}
@@ -107,7 +113,10 @@ function sendAIRequest(payload)
                 })
 
                 table.insert(functionReturns, {
-                    functionResponse = processCommand(part.functionCall.name, part.functionCall.args)
+                    functionResponse = {
+                        name = part.functionCall.name,
+                        response = processCommand(part.functionCall.name, part.functionCall.args)
+                    }
                 })
             end
         end
@@ -156,18 +165,16 @@ function sendFunctionResults(resObj)
 end
 
 function messageReceived(id, _, sender, content)
-    if not sender == "Diamond Assistant" and not content:find("^Assistant") then
-        return
-    end
+    if sender == ownerName and content:sub(1,#assistantName) == assistantName then
+        content = content:gsub("Assistant ", "")
 
-    content = content:gsub("Assistant ")
+        if content == "stop" then
+            chatbox.say("Stopping AI Assistant!")
 
-    if content == "stop" then
-        chatbox.say("Stopping AI Assistant!")
-
-        event.ignore("chat_message", messageReceived)
-    else
-        sendAIMessage(content)
+            event.ignore("chat_message", messageReceived)
+        else
+            sendAIMessage(content)
+        end
     end
 end
 
