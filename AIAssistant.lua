@@ -43,7 +43,7 @@ local genTools = {
 local context = [[
 You are an assistant for a minecraft base in the Gregtech New Horizons modpack in minecraft.
 You are connected to multiple peripherals.
-Format the output for the minecraft 1.7.10 chat.
+Format the output for the minecraft 1.7.10 chat (You can use \n for a new line).
 Format available:
     - §4 (Dark Red)
     - §c (Red)
@@ -71,6 +71,14 @@ The owner name is:
 ]]
 
 context = context .. ownerName
+
+function split(str, delimiter)
+    local result = {}
+    for match in (str .. delimiter):gmatch("(.-)" .. delimiter) do
+        table.insert(result, match)
+    end
+    return result
+end
 
 function appliedEnergisticsGetStoredItems()
     local itemList = {}
@@ -152,7 +160,11 @@ function sendAIRequest(payload)
                     text = part.text
                 })
 
-                chatbox.say("§r".. part.text)
+                local lines = split(part.text, "\n")
+
+                for _, line in ipairs(lines) do
+                    chatbox.say("§r" .. line)
+                end
             elseif part.functionCall then
                 table.insert(parts, {
                     functionCall = part.functionCall
