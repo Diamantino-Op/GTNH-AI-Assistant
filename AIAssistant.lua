@@ -1,6 +1,6 @@
 local component = require("component")
 local event = require("event")
-local internet = require("nternet")
+local internet = require("internet")
 local io = require("io")
 
 local meInterface = component.me_interface
@@ -8,37 +8,20 @@ local chatbox = component.chat_box
 
 local json = require("Json")
 
-local aiAssistant = {}
-
 local chatCache = {}
 
 local key = ""
 
-local commandList = {
-    "sendChatMessage",
-    "appliedEnergisticsGetStoredItems"
-}
-
-local genConfig = {
-    responseMimeType = "application/json",
-    responseSchema = {
-        type = "ARRAY",
-        items = {
-            type = "OBJECT",
-            properties = {
-                command = {
-                    type = "STRING",
-                    enum = commandList
-                },
-                args = {
-                    type = "ARRAY",
-                    items = {
-                        type = "STRING"
-                    },
-                    minItems = 0
+local genTools = {
+    {
+        functionDeclarations = {
+            {
+                name = "appliedEnergisticsGetStoredItems",
+                description = "Request all the stored items in the Applied Energistics network",
+                parameters = {
+                    type = "object"
                 }
-            },
-            required = { "command", "args" }
+            }
         }
     }
 }
@@ -46,12 +29,22 @@ local genConfig = {
 local context = [[
 You are an assistant for a minecraft base in the Gregtech New Horizons modpack in minecraft.
 You are connected to multiple peripherals.
-You have access to these commands:
-    - sendChatMessage: Send a message in the minecraft chat to communicate with players. Args: ( Message )
-    - appliedEnergisticsGetStoredItems: Request all the stored items in the Applied Energistics network. Args: ( )
 ]]
 
-function aiAssistant:processCommand(cmd, args)
+function appliedEnergisticsGetStoredItems()
+    local itemList = {}
+
+    for _, item in ipairs(meInterface.getItemsInNetwork()) do
+        table.insert(itemList, {
+            name = item.label,
+            amount = item.size
+        })
+    end
+
+    return itemList
+end
+
+function processCommand(cmd, args)
     chatbox.say("Executing cmd: " .. cmd)
 
     if cmd == "sendChatMessage" then
@@ -61,28 +54,12 @@ function aiAssistant:processCommand(cmd, args)
             chatbox.say("sendChatMessage: Wrong arg amount")
         end
     elseif cmd == "appliedEnergisticsGetStoredItems" then
-        local itemList = "Items in the AE network: \n"
-
-        for _, item in ipairs(meInterface.getItemsInNetwork()) do
-            itemList = itemList .. item.label .. " (Amount: " .. item.size .. ")\n"
-
-            self:sendAIMessage(itemList)
-        end
+        return appliedEnergisticsGetStoredItems()
     end
 end
 
-function aiAssistant:sendAIMessage(msg)
-    local geminiHttp =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
-
-    table.insert(chatCache, {
-        role = "user",
-        parts = {
-            {
-                text = msg
-            }
-        }
-    })
+function sendAIRequest(payload)
+    local geminiHttp = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" .. key
 
     local jsonData = json.encode({
         system_instruction = {
@@ -92,49 +69,94 @@ function aiAssistant:sendAIMessage(msg)
                 }
             }
         },
-        contents = chatCache,
-        generationConfig = genConfig
+        contents = payload,
+        tools = genTools,
+        tool_config = {
+            function_calling_config = {
+                mode = "auto"
+            }
+        }
     })
 
     local headers = {
         ["Content-Type"] = "application/json",
-        ["Accept"] = "application/json",
-        ["Content-Length"] = #jsonData,
-        ["x-goog-api-key"] = key
+        ["Accept"] = "application/json"
     }
 
-    local response = internet.request(geminiHttp, jsonData, headers)
+    local response = internet.request(geminiHttp, jsonData, headers, "POST")
 
     local result = ""
     for chunk in response do result = result .. chunk end
 
     local responseJson = json.decode(result)
 
-    local modelResponse = "No response text found."
-    if responseJson and responseJson.contents and #responseJson.contents > 0 and responseJson.contents[1].parts and #responseJson.contents[1].parts > 0 then
-        modelResponse = responseJson.contents[1].parts[1].text
+    local parts = {}
+    local functionReturns = {}
+
+    if responseJson and responseJson.candidates and #responseJson.candidates > 0 and responseJson.candidates[1].content and #responseJson.candidates[1].content.parts > 0 then
+        for _, part in ipairs(responseJson.candidates[1].content.parts) do
+            if part.text then
+                table.insert(parts, {
+                    text = part.text
+                })
+
+                chatbox.say(part.text)
+            elseif part.functionCall then
+                table.insert(parts, {
+                    functionCall = part.functionCall
+                })
+
+                table.insert(functionReturns, {
+                    functionResponse = processCommand(part.functionCall.name, part.functionCall.args)
+                })
+            end
+        end
     end
 
     table.insert(chatCache, {
         role = "model",
+        parts = parts
+    })
+
+    updateCacheFile()
+
+    if #functionReturns > 0 then
+        sendFunctionResults(functionReturns)
+    end
+end
+
+function updateCacheFile() 
+    local file = io.open("/home/GTNH-AI/Cache.json", "w")
+
+    file:write(json.encode(chatCache))
+
+    file:close()
+end
+
+function sendAIMessage(msg)
+    table.insert(chatCache, {
+        role = "user",
         parts = {
             {
-                text = modelResponse
+                text = msg
             }
         }
     })
 
-    local file = io.open("/home/GTNH-AI/Cache.json", "w")
-
-    file.write(json.encode(chatCache))
-
-    for _, cmd in ipairs(json.decode(modelResponse)) do
-        self.processCommand(cmd.command, cmd.args)
-    end
+    sendAIRequest(chatCache)
 end
 
-function aiAssistant:messageReceived(id, _, sender, content)
-    if not sender == "Diamond Assistant" and not content:find("^Asistant ") ~= nil then
+function sendFunctionResults(resObj) 
+    table.insert(chatCache, {
+        role = "user",
+        parts = resObj
+    })
+
+    sendAIRequest(chatCache)
+end
+
+function messageReceived(id, _, sender, content)
+    if not sender == "Diamond Assistant" and not content:find("^Assistant") then
         return
     end
 
@@ -143,13 +165,13 @@ function aiAssistant:messageReceived(id, _, sender, content)
     if content == "stop" then
         chatbox.say("Stopping AI Assistant!")
 
-        event.ignore("chat_message", aiAssistant.messageReceived)
+        event.ignore("chat_message", messageReceived)
     else
-        self:sendAIMessage(content)
+        sendAIMessage(content)
     end
 end
 
-function aiAssistant.init()
+function init()
     local cacheFile = io.open("/home/GTNH-AI/Cache.json", "r")
 
     if cacheFile then
@@ -171,6 +193,6 @@ end
 
 chatbox.setName("Diamond Assistant")
 
-aiAssistant.init()
+init()
 
-event.listen("chat_message", aiAssistant.messageReceived)
+event.listen("chat_message", messageReceived)
