@@ -119,6 +119,10 @@ function sendAIRequest(payload)
 
                 chatbox.say(part.text)
             elseif part.functionCall then
+                if type(part.functionCall.args) ~= "table" then
+                    part.functionCall.args = {}
+                end
+
                 table.insert(parts, {
                     functionCall = part.functionCall
                 })
