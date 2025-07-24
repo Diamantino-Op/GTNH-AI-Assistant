@@ -13,6 +13,8 @@ local chatCache = {}
 local assistantName = "Assistant"
 local ownerName = "Diamantino_Op"
 
+local debugEnabled = false
+
 local key = ""
 
 local genTools = {
@@ -47,7 +49,9 @@ function appliedEnergisticsGetStoredItems()
         })
     end
 
-    return itemList
+    return {
+        items = itemList
+    }
 end
 
 function processCommand(cmd, args)
@@ -90,6 +94,13 @@ function sendAIRequest(payload)
     }
 
     local response = internet.request(geminiHttp, jsonData, headers, "POST")
+
+    if debugEnabled then
+        local code, message, _ = getmetatable(response).__index.response()
+
+        chatbox.say("Http Code: " .. code)
+        chatbox.say("Http Message: " .. message)
+    end
 
     local result = ""
     for chunk in response do result = result .. chunk end
