@@ -24,22 +24,24 @@ local genTools = {
                 name = "appliedEnergisticsGetStoredItems",
                 description = "Request all the stored items in the Applied Energistics network",
                 parameters = {
-                    type = "object",
-                    properties = {
-                        test = {
-                            type = "string",
-                            description = "A test property, can be set to whatever"
-                        }
-                    },
-                    required = {
-                        "test"
-                    }
+                    type = "object"
+                }
+            },
+            {
+                name = "appliedEnergisticsGetStoredFluids",
+                description = "Request all the stored fluids in the Applied Energistics network",
+                parameters = {
+                    type = "object"
+                }
+            },
+            {
+                name = "appliedEnergisticsGetStoredEssentias",
+                description = "Request all the stored thaumcraft essentias in the Applied Energistics network",
+                parameters = {
+                    type = "object"
                 }
             }
         }
-    },
-    {
-        googleSearch = {}
     }
 }
 
@@ -89,14 +91,56 @@ function appliedEnergisticsGetStoredItems()
     local itemList = {}
 
     for _, item in ipairs(meInterface.getItemsInNetwork()) do
-        table.insert(itemList, {
-            name = item.label,
-            amount = item.size
-        })
+        if item.crop then
+            table.insert(itemList, {
+                name = item.label,
+                amount = item.size,
+                cropInfo = {
+                    resistance = item.crop.resistance,
+                    gain = item.crop.gain,
+                    growth = item.crop.growth
+                }
+            })
+        else
+            table.insert(itemList, {
+                name = item.label,
+                amount = item.size
+            })
+        end
     end
 
     return {
         items = itemList
+    }
+end
+
+function appliedEnergisticsGetStoredFluids()
+    local fluidList = {}
+
+    for _, fluid in ipairs(meInterface.getFluidsInNetwork()) do
+        table.insert(fluidList, {
+            name = fluid.label,
+            amount = fluid.amount
+        })
+    end
+
+    return {
+        fluids = fluidList
+    }
+end
+
+function appliedEnergisticsGetStoredEssentias()
+    local essentiaList = {}
+
+    for _, essentia in ipairs(meInterface.getEssentiaInNetwork()) do
+        table.insert(essentiaList, {
+            name = essentia.label,
+            amount = essentia.amount
+        })
+    end
+
+    return {
+        essentias = essentiaList
     }
 end
 
@@ -111,6 +155,10 @@ function processCommand(cmd, args)
         end
     elseif cmd == "appliedEnergisticsGetStoredItems" then
         return appliedEnergisticsGetStoredItems()
+    elseif cmd == "appliedEnergisticsGetStoredFluids" then
+        return appliedEnergisticsGetStoredFluids()
+    elseif cmd == "appliedEnergisticsGetStoredEssentias" then
+        return appliedEnergisticsGetStoredEssentias()
     end
 end
 
@@ -134,8 +182,7 @@ function sendAIRequest(payload)
         }
     })
 
-    jsonData:gsub("\"args\": []", "\"args\": {}")
-    jsonData:gsub("\"googleSearch\": []", "\"googleSearch\": {}")
+    jsonData = string.gsub(jsonData, "\"args\": []", "\"args\": {}")
 
     local headers = {
         ["Content-Type"] = "application/json",
