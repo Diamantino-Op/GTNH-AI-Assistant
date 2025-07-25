@@ -182,7 +182,7 @@ function sendAIRequest(payload)
         }
     })
 
-    jsonData = string.gsub(jsonData, "\"args\": []", "\"args\": {}")
+    jsonData = string.gsub(jsonData, "%[%]", "{}")
 
     local headers = {
         ["Content-Type"] = "application/json",
